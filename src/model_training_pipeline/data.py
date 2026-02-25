@@ -75,3 +75,33 @@ def split_indices(
     idx_train = idx_all[n_test + n_val :]
 
     return idx_train, idx_val, idx_test
+
+
+def split_dataset(
+    *,
+    X: FloatArray,
+    y: IntArray,
+    idx_train: IntArray,
+    idx_val: IntArray,
+    idx_test: IntArray,
+) -> tuple[FloatArray, IntArray, FloatArray, IntArray, FloatArray, IntArray]:
+    """
+    Build concrete train/validation/test arrays from precomputed row indices.
+
+    This function applies the same index sets to both features (`X`) and labels (`y`)
+    so rows stay aligned. It expects `idx_train`, `idx_val`, and `idx_test` to be
+    non-overlapping (for example, produced by `split_indices`) to avoid leakage.
+
+    Returns:
+      (X_train, y_train, X_val, y_val, X_test, y_test)
+    """
+    X_train = X[idx_train]
+    y_train = y[idx_train]
+
+    X_val = X[idx_val]
+    y_val = y[idx_val]
+
+    X_test = X[idx_test]
+    y_test = y[idx_test]
+
+    return X_train, y_train, X_val, y_val, X_test, y_test
