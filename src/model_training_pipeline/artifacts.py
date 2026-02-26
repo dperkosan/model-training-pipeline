@@ -4,13 +4,15 @@ from dataclasses import dataclass
 from datetime import datetime
 import json
 from pathlib import Path
-from typing import Any
+from typing import Mapping, Sequence, TypeAlias, cast
 import joblib
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.pipeline import Pipeline
 
 IntArray = NDArray[np.int64]
+JsonScalar: TypeAlias = str | int | float | bool | None
+JsonValue: TypeAlias = JsonScalar | Sequence["JsonValue"] | Mapping[str, "JsonValue"]
 
 
 @dataclass(frozen=True)
@@ -39,7 +41,7 @@ def make_run_dir(*, root: str = "runs", seed: int) -> RunPaths:
     )
 
 
-def save_json(*, path: Path, obj: dict[str, Any]) -> None:
+def save_json(*, path: Path, obj: JsonValue) -> None:
     """
     Save a dict as pretty JSON.
     """
@@ -73,3 +75,21 @@ def save_model(*, path: Path, model: Pipeline) -> None:
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, path)
+
+
+def load_json(*, path: Path) -> JsonValue:
+    """
+    Load JSON from disk and return it as Python data.
+    """
+    with path.open("r", encoding="utf-8") as f:
+        return cast(JsonValue, json.load(f))
+
+
+def load_model(*, path: Path) -> Pipeline:
+    """
+    Load a scikit-learn model from disk.
+    """
+    model = joblib.load(path)
+    if not isinstance(model, Pipeline):
+        raise TypeError(f"Expected Pipeline, got {type(model)}")
+    return model

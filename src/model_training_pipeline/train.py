@@ -7,7 +7,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from model_training_pipeline.artifacts import make_run_dir, save_json, save_model, save_split_indices
+from model_training_pipeline.artifacts import (
+    make_run_dir,
+    save_json,
+    save_model,
+    save_split_indices,
+)
 from model_training_pipeline.data import load_dataset, split_dataset, split_indices
 from model_training_pipeline.metrics import evaluate_binary_classifier
 
