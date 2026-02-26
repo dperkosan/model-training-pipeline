@@ -15,6 +15,14 @@ ML foundations project that demonstrates:
 poetry install
 ```
 
+## Training
+
+Run training with debug output:
+
+```bash
+poetry run train --debug
+```
+
 ## Useful commands
 
 Run tests:
