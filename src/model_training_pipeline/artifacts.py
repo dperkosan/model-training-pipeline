@@ -93,3 +93,30 @@ def load_model(*, path: Path) -> Pipeline:
     if not isinstance(model, Pipeline):
         raise TypeError(f"Expected Pipeline, got {type(model)}")
     return model
+
+
+def load_split_indices(*, path: Path) -> tuple[IntArray, IntArray, IntArray]:
+    """
+    Load split indices from JSON and return them as NumPy int64 arrays.
+    """
+    obj = load_json(path=path)
+    if not isinstance(obj, dict):
+        raise TypeError("splits.json must be a JSON object")
+
+    def _get_list(name: str) -> list[int]:
+        value = obj.get(name)
+        if not isinstance(value, list):
+            raise TypeError(f"{name} must be a list[int]")
+
+        out: list[int] = []
+        for x in value:
+            if not isinstance(x, int):
+                raise TypeError(f"{name} must be a list[int]")
+            out.append(x)
+        return out
+
+    idx_train = np.asarray(_get_list("idx_train"), dtype=np.int64)
+    idx_val = np.asarray(_get_list("idx_val"), dtype=np.int64)
+    idx_test = np.asarray(_get_list("idx_test"), dtype=np.int64)
+
+    return idx_train, idx_val, idx_test

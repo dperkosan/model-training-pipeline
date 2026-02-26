@@ -23,6 +23,32 @@ Run training with debug output:
 poetry run train --debug
 ```
 
+## Eval
+
+Run evaluation for a saved run directory:
+
+```bash
+poetry run eval --run-dir runs/<YOUR_RUN_ID>
+```
+
+Run evaluation and save results to `eval_metrics.json`:
+
+```bash
+poetry run eval --run-dir runs/<YOUR_RUN_ID> --save
+```
+
+Run evaluation with a custom classification threshold:
+
+```bash
+poetry run eval --run-dir runs/<YOUR_RUN_ID> --threshold 0.7
+```
+
+Run evaluation with debug output:
+
+```bash
+poetry run eval --run-dir runs/<YOUR_RUN_ID> --debug
+```
+
 ## Useful commands
 
 Run tests:
