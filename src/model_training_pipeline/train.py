@@ -7,7 +7,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 
+from model_training_pipeline.artifacts import make_run_dir, save_json, save_model, save_split_indices
 from model_training_pipeline.data import load_dataset, split_dataset, split_indices
+from model_training_pipeline.metrics import evaluate_binary_classifier
 
 FloatArray = NDArray[np.float64]
 IntArray = NDArray[np.int64]
@@ -25,7 +27,7 @@ def train_baseline_model(
         StandardScaler(),
         LogisticRegression(
             # Let the optimizer take more steps so training can finish cleanly.
-            max_iter=3000,
+            max_iter=1000,
             # Keep results reproducible across runs.
             random_state=seed,
             # Stable default solver for this type of dataset.
@@ -102,13 +104,71 @@ def main() -> None:
     model = train_baseline_model(X_train=X_train, y_train=y_train, seed=args.seed)
     print("Model trained.")
 
-    # 5) Get probability scores (and optionally print debug)
-    test_scores = predict_probabilities(model=model, X=X_test, debug=args.debug)
+    # 5) Scores + metrics
+    val_scores = predict_probabilities(model=model, X=X_val, debug=args.debug)
+    test_scores = predict_probabilities(model=model, X=X_test, debug=False)
 
-    # 6) Show a simple metric just to confirm it works end-to-end
-    test_acc = model.score(X_test, y_test)
-    print("Test accuracy:", float(test_acc))
-    print("Example test scores (first 5):", test_scores[:5])
+    val_metrics = evaluate_binary_classifier(
+        y_true=y_val, y_score=val_scores, threshold=0.5
+    )
+    test_metrics = evaluate_binary_classifier(
+        y_true=y_test, y_score=test_scores, threshold=0.5
+    )
+
+    print("VAL metrics:", val_metrics)
+    print("TEST metrics:", test_metrics)
+
+    # 6) Create run dir + save artifacts
+    paths = make_run_dir(seed=args.seed)
+
+    # Save model
+    save_model(path=paths.model_path, model=model)
+
+    # Save metrics
+    save_json(
+        path=paths.metrics_path,
+        obj={
+            "val": val_metrics,
+            "test": test_metrics,
+        },
+    )
+
+    # Save split indices (so eval can reconstruct test set exactly)
+    save_split_indices(
+        path=paths.splits_path,
+        idx_train=idx_train,
+        idx_val=idx_val,
+        idx_test=idx_test,
+    )
+
+    # Save config used (so the run is reproducible)
+    save_json(
+        path=paths.config_path,
+        obj={
+            "seed": args.seed,
+            "test_size": args.test_size,
+            "val_size": args.val_size,
+            "threshold": 0.5,
+            "model": {
+                "type": "Pipeline",
+                "steps": [
+                    {
+                        "name": "standardscaler",
+                        "type": "StandardScaler",
+                    },
+                    {
+                        "name": "logisticregression",
+                        "type": "LogisticRegression",
+                        "solver": "lbfgs",
+                        "max_iter": 1000,
+                        "random_state": args.seed,
+                    },
+                ],
+            },
+        },
+    )
+
+    print("Saved run artifacts to:", str(paths.run_dir))
 
 
 if __name__ == "__main__":

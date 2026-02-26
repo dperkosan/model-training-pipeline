@@ -58,3 +58,22 @@ def f1_score(*, y_true: IntArray, y_pred: IntArray) -> float:
         return 0.0
 
     return 2.0 * (precision * recall) / (precision + recall)
+
+
+def evaluate_binary_classifier(
+    *, y_true: IntArray, y_score: FloatArray, threshold: float
+) -> dict[str, float]:
+    """
+    Evaluate a binary classifier from probability scores.
+
+    Returns a small metrics dict you can print/log/save.
+    """
+    y_pred = threshold_predictions(y_score=y_score, threshold=threshold)
+    acc = accuracy(y_true=y_true, y_pred=y_pred)
+    f1 = f1_score(y_true=y_true, y_pred=y_pred)
+
+    return {
+        "threshold": float(threshold),
+        "accuracy": float(acc),
+        "f1": float(f1),
+    }
