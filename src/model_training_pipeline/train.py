@@ -4,6 +4,8 @@ import argparse
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from model_training_pipeline.data import load_dataset, split_dataset, split_indices
 
@@ -13,36 +15,40 @@ IntArray = NDArray[np.int64]
 
 def train_baseline_model(
     *, X_train: FloatArray, y_train: IntArray, seed: int
-) -> LogisticRegression:
+) -> Pipeline:
     """
-    Trains a simple baseline classifier and returns the fitted model.
+    Fit a baseline classifier and return the trained pipeline.
     """
-    model = LogisticRegression(
-        # Upper bound on optimizer steps; higher value reduces "did not converge" warnings.
-        max_iter=1000,
-        # Fixed seed for solver internals so repeated runs with same data stay consistent.
-        random_state=seed,
-        # Single-thread execution keeps behavior stable across different machines/setups.
-        n_jobs=1,
+    # First step: scale each feature to a comparable range (mean 0, std 1).
+    # This usually makes logistic regression train faster and avoids convergence issues.
+    model = make_pipeline(
+        StandardScaler(),
+        LogisticRegression(
+            # Let the optimizer take more steps so training can finish cleanly.
+            max_iter=3000,
+            # Keep results reproducible across runs.
+            random_state=seed,
+            # Stable default solver for this type of dataset.
+            solver="lbfgs",
+        ),
     )
     model.fit(X_train, y_train)
     return model
 
 
 def predict_probabilities(
-    *, model: LogisticRegression, X: FloatArray, debug: bool = False
+    *, model: Pipeline, X: FloatArray, debug: bool = False
 ) -> FloatArray:
     """
-    Predict positive-class probability for each row in `X`.
+    Return the probability of class 1 for each row in `X`.
 
-    In binary logistic regression, `predict_proba` returns two columns:
-    - column 0: P(class = 0)
-    - column 1: P(class = 1)
+    In binary classification, `predict_proba` returns two columns:
+    column 0 is P(class 0), column 1 is P(class 1).
     This helper returns only column 1 as a 1D array with shape `(n_samples,)`.
     """
-    # Each row contains [P(class=0), P(class=1)] and sums to 1.0.
+    # One row per sample: [P(class=0), P(class=1)].
     proba_2d = model.predict_proba(X)
-    # Keep only the positive-class probability, commonly used for thresholds/ROC-AUC.
+    # Keep only P(class=1), which is the usual "score" for binary tasks.
     proba_class1 = proba_2d[:, 1]
 
     if debug:
