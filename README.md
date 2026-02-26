@@ -20,7 +20,7 @@ poetry install
 Run training with debug output:
 
 ```bash
-poetry run train --debug
+poetry run train --log-level DEBUG
 ```
 
 ## Eval

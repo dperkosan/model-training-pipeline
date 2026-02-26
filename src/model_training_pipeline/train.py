@@ -1,7 +1,9 @@
 from __future__ import annotations
 import argparse
+import logging
 
 import numpy as np
+from model_training_pipeline.utils import setup_logging
 from numpy.typing import NDArray
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline, make_pipeline
@@ -53,18 +55,16 @@ def predict_probabilities(
     column 0 is P(class 0), column 1 is P(class 1).
     This helper returns only column 1 as a 1D array with shape `(n_samples,)`.
     """
+    logger = logging.getLogger("model_training_pipeline")
+    
     # One row per sample: [P(class=0), P(class=1)].
     proba_2d = model.predict_proba(X)
     # Keep only P(class=1), which is the usual "score" for binary tasks.
     proba_class1 = proba_2d[:, 1]
 
-    if debug:
-        print("\n--- DEBUG: predict_proba output (first 5 rows) ---")
-        print("Each row is: [P(class0), P(class1)]")
-        print(proba_2d[:5])
-        print("\n--- DEBUG: class1 scores (first 5) ---")
-        print(proba_class1[:5])
-        print("min/max:", float(proba_class1.min()), float(proba_class1.max()))
+    logger.debug("predict_proba first 5 rows:\n%s", proba_2d[:5])
+    logger.debug("class1 scores first 5: %s", proba_class1[:5])
+    logger.debug("min/max: %s %s", float(proba_class1.min()), float(proba_class1.max()))
 
     return np.asarray(proba_class1, dtype=np.float64)
 
@@ -77,15 +77,21 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--test-size", type=float, default=0.2)
     p.add_argument("--val-size", type=float, default=0.1)
     p.add_argument("--debug", action="store_true", help="Print predict_proba details.")
+    p.add_argument("--log-level", type=str, default="INFO", help="DEBUG, INFO, WARNING, ERROR")
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
 
+    # 0) Create run dir
+    paths = make_run_dir(seed=args.seed)
+    logger = setup_logging(level=args.log_level, log_file=paths.log_path)
+    logger.info("Run dir: %s", paths.run_dir)
+
     # 1) Load full dataset (X matrix, y labels)
     X, y = load_dataset()
-    print("Loaded dataset:", X.shape, y.shape)
+    logger.info("Loaded dataset: X=%s y=%s", X.shape, y.shape)
 
     # 2) Split row indices deterministically
     idx_train, idx_val, idx_test = split_indices(
@@ -103,11 +109,11 @@ def main() -> None:
         idx_val=idx_val,
         idx_test=idx_test,
     )
-    print("Splits:", X_train.shape, X_val.shape, X_test.shape)
+    logger.info("Splits: train=%s val=%s test=%s", X_train.shape, X_val.shape, X_test.shape)
 
     # 4) Train model
     model = train_baseline_model(X_train=X_train, y_train=y_train, seed=args.seed)
-    print("Model trained.")
+    logger.info("Model trained.")
 
     # 5) Scores + metrics
     val_scores = predict_probabilities(model=model, X=X_val, debug=args.debug)
@@ -120,12 +126,11 @@ def main() -> None:
         y_true=y_test, y_score=test_scores, threshold=0.5
     )
 
-    print("VAL metrics:", val_metrics)
-    print("TEST metrics:", test_metrics)
+    logger.info("VAL metrics: %s", val_metrics)
+    logger.info("TEST metrics: %s", test_metrics)
 
-    # 6) Create run dir + save artifacts
-    paths = make_run_dir(seed=args.seed)
-
+    # 6) Save artifacts
+    
     # Save model
     save_model(path=paths.model_path, model=model)
 
@@ -173,7 +178,7 @@ def main() -> None:
         },
     )
 
-    print("Saved run artifacts to:", str(paths.run_dir))
+    logger.info("Saved run artifacts to: %s", paths.run_dir)
 
 
 if __name__ == "__main__":

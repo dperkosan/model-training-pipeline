@@ -5,7 +5,7 @@ from datetime import datetime
 import json
 from pathlib import Path
 from typing import Mapping, Sequence, TypeAlias, cast
-import joblib
+import joblib  # type: ignore[import-untyped]
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.pipeline import Pipeline
@@ -22,6 +22,7 @@ class RunPaths:
     metrics_path: Path
     config_path: Path
     splits_path: Path
+    log_path: Path
 
 
 def make_run_dir(*, root: str = "runs", seed: int) -> RunPaths:
@@ -38,6 +39,7 @@ def make_run_dir(*, root: str = "runs", seed: int) -> RunPaths:
         metrics_path=run_dir / "metrics.json",
         config_path=run_dir / "config.json",
         splits_path=run_dir / "splits.json",
+        log_path=run_dir / "train.log",
     )
 
 

@@ -12,6 +12,7 @@ from model_training_pipeline.artifacts import (
 from model_training_pipeline.data import load_dataset
 from model_training_pipeline.metrics import evaluate_binary_classifier
 from model_training_pipeline.train import predict_probabilities
+from model_training_pipeline.utils import setup_logging
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,6 +36,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     run_dir = Path(args.run_dir)
+    log_level = "DEBUG" if args.debug else "INFO"
+    logger = setup_logging(level=log_level, log_file=run_dir / "eval.log")
+    logger.info("Evaluating run: %s", run_dir)
 
     model_path = run_dir / "model.joblib"
     config_path = run_dir / "config.json"
@@ -68,13 +72,13 @@ def main() -> None:
         y_true=y_test, y_score=test_scores, threshold=threshold
     )
 
-    print("Run dir:", str(run_dir))
-    print("Test metrics:", metrics)
+    logger.info("Run dir: %s", run_dir)
+    logger.info("Test metrics: %s", metrics)
 
     # 5) Optional: save metrics as an artifact too
     if args.save:
         save_json(path=eval_metrics_path, obj={"test": metrics})
-        print("Saved:", str(eval_metrics_path))
+        logger.info("Saved: %s", eval_metrics_path)
 
 
 if __name__ == "__main__":
