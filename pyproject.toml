@@ -10,6 +10,9 @@ python = "^3.12"
 scikit-learn = "^1.8.0"
 pyyaml = "^6.0.3"
 joblib = "^1.5.3"
+opentelemetry-api = "^1.39.1"
+opentelemetry-sdk = "^1.39.1"
+opentelemetry-exporter-otlp-proto-http = "^1.39.1"
 
 
 [tool.poetry.group.dev.dependencies]
